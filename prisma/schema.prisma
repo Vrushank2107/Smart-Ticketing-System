@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(REGULAR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tickets      Ticket[]
+  waitlist     Waitlist[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Event {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  venue         String
+  image         String?
+  date          DateTime
+  capacity      Int
+  availableSeats Int
+  basePrice     Float
+  category      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  tickets  Ticket[]
+  waitlist Waitlist[]
+
+  @@map("events")
+}
+
+model Ticket {
+  id        String      @id @default(cuid())
+  userId    String
+  eventId   String
+  seatType  SeatType
+  quantity  Int
+  status    TicketStatus
+  price     Float
+  qrCode    String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("tickets")
+}
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  position  Int
+  createdAt DateTime @default(now())
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("waitlist")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  message   String
+  type      NotificationType
+  status    NotificationStatus @default(UNREAD)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Enums
+enum UserRole {
+  REGULAR
+  VIP
+  ADMIN
+}
+
+enum SeatType {
+  VIP
+  PREMIUM
+  NORMAL
+}
+
+enum TicketStatus {
+  BOOKED
+  WAITLISTED
+  CANCELLED
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  WAITLIST_PROMOTION
+  CANCELLATION_CONFIRMED
+  EVENT_REMINDER
+}
+
+enum NotificationStatus {
+  READ
+  UNREAD
+}
