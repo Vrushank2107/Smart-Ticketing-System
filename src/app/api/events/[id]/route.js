@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/auth';
 import { PrismaClient } from '@prisma/client';
 import TicketingService from '../../../../services/TicketingService';
@@ -62,6 +63,15 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin access required' },
+        { status: 401 }
+      );
+    }
+
     const { id } = params;
     const { title, description, venue, date, capacity, basePrice, category, image } = await request.json();
 
@@ -120,6 +130,15 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin access required' },
+        { status: 401 }
+      );
+    }
+
     const { id } = params;
 
     // Check if event has booked tickets

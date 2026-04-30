@@ -146,7 +146,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     
     try {
-      const response = await fetch(`/api/admin/events/${eventToEdit.id}`, {
+      const response = await fetch(`/api/events/${eventToEdit.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
