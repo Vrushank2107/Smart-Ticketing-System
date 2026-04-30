@@ -3,13 +3,17 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Calendar, MapPin, QrCode, X, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { useToast } from '../../components/ToastContainer';
 
 export default function MyTicketsPage() {
   const { data: session } = useSession();
+  const toast = useToast();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [ticketToCancel, setTicketToCancel] = useState(null);
   const [filter, setFilter] = useState('ALL');
 
   useEffect(() => {
@@ -31,9 +35,12 @@ export default function MyTicketsPage() {
   };
 
   const handleCancelTicket = async (ticketId) => {
-    if (!confirm('Are you sure you want to cancel this ticket?')) {
-      return;
-    }
+    setTicketToCancel(ticketId);
+    setShowConfirmModal(true);
+  };
+
+  const confirmCancelTicket = async () => {
+    if (!ticketToCancel) return;
 
     try {
       const response = await fetch('/api/tickets/cancel', {
@@ -41,21 +48,32 @@ export default function MyTicketsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ticketId }),
+        body: JSON.stringify({ ticketId: ticketToCancel }),
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        alert('Ticket cancelled successfully');
-        fetchTickets(); // Refresh tickets
+        toast.success('Ticket cancelled successfully!');
+        setShowConfirmModal(false);
+        setTicketToCancel(null);
+        fetchTickets();
       } else {
-        alert(result.error || 'Cancellation failed');
+        toast.error(result.error || 'Cancellation failed');
+        setShowConfirmModal(false);
+        setTicketToCancel(null);
       }
     } catch (error) {
-      console.error('Cancellation error:', error);
-      alert('Cancellation failed. Please try again.');
+      console.error('Error cancelling ticket:', error);
+      toast.error('Failed to cancel ticket. Please try again.');
+      setShowConfirmModal(false);
+      setTicketToCancel(null);
     }
+  };
+
+  const cancelConfirmModal = () => {
+    setShowConfirmModal(false);
+    setTicketToCancel(null);
   };
 
   const showQRCode = (ticket) => {
@@ -108,7 +126,7 @@ export default function MyTicketsPage() {
 
   if (!session) {
     return (
-      <div className="text-center py-12">
+      <div className="glass-card rounded-[3rem] p-12 text-center">
         <h2 className="text-2xl font-bold text-gray-600 mb-4">Please sign in to view your tickets</h2>
         <Link href="/auth/signin" className="btn btn-primary">
           Sign In
@@ -128,22 +146,24 @@ export default function MyTicketsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">My Tickets</h1>
-        <p className="text-gray-600 mt-2">Manage your event tickets and bookings</p>
+      <div className="glass-card rounded-[3rem] p-8">
+        <h1 className="text-4xl font-bold mb-2">
+          <span className="gradient-text">My Tickets</span>
+        </h1>
+        <p className="text-gray-600 text-lg">Manage your event tickets and bookings</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="glass-card rounded-[3rem] p-6">
+        <div className="flex flex-wrap gap-3">
           {['ALL', 'BOOKED', 'WAITLISTED', 'CANCELLED'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-6 py-3 rounded-xl font-medium transition-all ${
                 filter === status
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                  : 'bg-white/50 text-gray-700 hover:bg-white/70 border border-gray-200'
               }`}
             >
               {status.charAt(0) + status.slice(1).toLowerCase()}
@@ -159,12 +179,12 @@ export default function MyTicketsPage() {
 
       {/* Tickets Grid */}
       {filteredTickets.length === 0 ? (
-        <div className="text-center py-12">
-          <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">
+        <div className="glass-card rounded-[3rem] p-12 text-center">
+          <Calendar className="h-20 w-20 text-gray-400 mx-auto mb-6" />
+          <h3 className="text-2xl font-semibold text-gray-600 mb-3">
             {filter === 'ALL' ? 'No tickets found' : `No ${filter.toLowerCase()} tickets`}
           </h3>
-          <p className="text-gray-500 mb-4">
+          <p className="text-gray-500 mb-6">
             {filter === 'ALL' 
               ? 'Start by booking tickets for upcoming events' 
               : `You don't have any ${filter.toLowerCase()} tickets`}
@@ -178,7 +198,7 @@ export default function MyTicketsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTickets.map((ticket) => (
-            <div key={ticket.id} className="card hover:shadow-lg transition-shadow">
+            <div key={ticket.id} className="glass-feature slide-up">
               <div className="p-6">
                 {/* Status Badge */}
                 <div className="flex justify-between items-start mb-4">
@@ -211,7 +231,7 @@ export default function MyTicketsPage() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="font-medium">Price:</span>
-                    <span className="text-primary-600 font-semibold">${ticket.price}</span>
+                    <span className="text-primary-600 font-semibold">₹{ticket.price}</span>
                   </div>
                 </div>
 
@@ -255,8 +275,8 @@ export default function MyTicketsPage() {
 
       {/* QR Code Modal */}
       {showQRModal && selectedTicket && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[3rem] max-w-md w-full p-8 fade-in shadow-2xl border border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Ticket QR Code</h3>
               <button
@@ -282,18 +302,52 @@ export default function MyTicketsPage() {
                 )}
               </div>
 
-              <div className="text-sm text-gray-600">
-                <p className="font-semibold">{selectedTicket.event.title}</p>
-                <p>{formatDate(selectedTicket.event.date)}</p>
-                <p>{selectedTicket.event.venue}</p>
-                <p className="mt-2">Ticket ID: {selectedTicket.id}</p>
-                <p>Quantity: {selectedTicket.quantity}</p>
+              <div className="text-sm text-gray-800 space-y-1">
+                <p className="font-semibold text-gray-900">{selectedTicket.event.title}</p>
+                <p className="text-gray-700">{formatDate(selectedTicket.event.date)}</p>
+                <p className="text-gray-700">{selectedTicket.event.venue}</p>
+                <p className="mt-2 text-gray-600">Ticket ID: {selectedTicket.id}</p>
+                <p className="text-gray-600">Quantity: {selectedTicket.quantity}</p>
               </div>
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <p className="text-sm text-yellow-800">
                   Please show this QR code at the venue for entry
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[3rem] max-w-md w-full p-8 fade-in shadow-2xl border border-gray-200">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                <AlertCircle className="h-8 w-8 text-red-600" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-900">Cancel Ticket</h3>
+              
+              <p className="text-gray-600">
+                Are you sure you want to cancel this ticket? This action cannot be undone.
+              </p>
+              
+              <div className="flex justify-center space-x-4 pt-4">
+                <button
+                  onClick={cancelConfirmModal}
+                  className="btn btn-outline px-6"
+                >
+                  No, Keep Ticket
+                </button>
+                <button
+                  onClick={confirmCancelTicket}
+                  className="btn btn-danger px-6"
+                >
+                  Yes, Cancel
+                </button>
               </div>
             </div>
           </div>

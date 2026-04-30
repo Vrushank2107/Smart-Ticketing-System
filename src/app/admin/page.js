@@ -14,12 +14,20 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  MapPin, 
+  Star, 
+  CreditCard, 
+  Smartphone, 
+  Wallet, 
+  ArrowLeft
 } from 'lucide-react';
+import { useToast } from '../../components/ToastContainer';
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
   const router = useRouter();
+  const toast = useToast();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalBookings: 0,
@@ -29,6 +37,8 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -111,37 +121,51 @@ export default function AdminDashboard() {
           image: ''
         });
         fetchDashboardData();
-        alert('Event created successfully');
+        toast.success('Event created successfully');
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to create event');
+        toast.error(error.error || 'Failed to create event');
       }
     } catch (error) {
       console.error('Error creating event:', error);
-      alert('Failed to create event');
+      toast.error('Failed to create event');
     }
   };
 
   const handleDeleteEvent = async (eventId) => {
-    if (!confirm('Are you sure you want to delete this event?')) {
-      return;
-    }
+    setEventToDelete(eventId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteEvent = async () => {
+    if (!eventToDelete) return;
 
     try {
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetch(`/api/events/${eventToDelete}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         fetchDashboardData();
-        alert('Event deleted successfully');
+        toast.success('Event deleted successfully');
+        setShowDeleteModal(false);
+        setEventToDelete(null);
       } else {
-        alert('Failed to delete event');
+        toast.error('Failed to delete event');
+        setShowDeleteModal(false);
+        setEventToDelete(null);
       }
     } catch (error) {
       console.error('Error deleting event:', error);
-      alert('Failed to delete event');
+      toast.error('Failed to delete event');
+      setShowDeleteModal(false);
+      setEventToDelete(null);
     }
+  };
+
+  const cancelDeleteModal = () => {
+    setShowDeleteModal(false);
+    setEventToDelete(null);
   };
 
   const formatDate = (dateString) => {
@@ -157,7 +181,7 @@ export default function AdminDashboard() {
 
   if (!session) {
     return (
-      <div className="text-center py-12">
+      <div className="glass-card rounded-[3rem] p-12 text-center">
         <h2 className="text-2xl font-bold text-gray-600 mb-4">Please sign in to access admin dashboard</h2>
         <Link href="/auth/signin" className="btn btn-primary">
           Sign In
@@ -168,7 +192,7 @@ export default function AdminDashboard() {
 
   if (session.user.role !== 'ADMIN') {
     return (
-      <div className="text-center py-12">
+      <div className="glass-card rounded-[3rem] p-12 text-center">
         <h2 className="text-2xl font-bold text-gray-600 mb-4">Access Denied</h2>
         <p className="text-gray-500 mb-4">You don't have permission to access this page</p>
         <Link href="/" className="btn btn-primary">
@@ -189,80 +213,84 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage events and monitor system performance</p>
+      <div className="glass-card rounded-[3rem] p-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">
+              <span className="gradient-text">Admin Dashboard</span>
+            </h1>
+            <p className="text-gray-600 text-lg">Manage events and monitor system performance</p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn btn-primary flex items-center space-x-2"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Create Event</span>
+          </button>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="btn btn-primary flex items-center space-x-2"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Create Event</span>
-        </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card">
+        <div className="glass-stat">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Users</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
+              <p className="text-3xl font-bold text-indigo-600">{stats.totalUsers}</p>
             </div>
-            <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users className="h-6 w-6 text-blue-600" />
+            <div className="h-14 w-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+              <Users className="h-7 w-7 text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card">
+        <div className="glass-stat">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Bookings</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalBookings}</p>
+              <p className="text-3xl font-bold text-indigo-600">{stats.totalBookings}</p>
             </div>
-            <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Ticket className="h-6 w-6 text-green-600" />
+            <div className="h-14 w-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
+              <Ticket className="h-7 w-7 text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card">
+        <div className="glass-stat">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">${stats.totalRevenue.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-indigo-600">₹{stats.totalRevenue.toFixed(2)}</p>
             </div>
-            <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-yellow-600" />
+            <div className="h-14 w-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center">
+              <DollarSign className="h-7 w-7 text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card">
+        <div className="glass-stat">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Active Events</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.activeEvents}</p>
+              <p className="text-3xl font-bold text-indigo-600">{stats.activeEvents}</p>
             </div>
-            <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Calendar className="h-6 w-6 text-purple-600" />
+            <div className="h-14 w-14 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
+              <Calendar className="h-7 w-7 text-white" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Events Table */}
-      <div className="card">
-        <h2 className="text-xl font-bold mb-6">Events Management</h2>
+      <div className="glass-card rounded-[3rem] p-8">
+        <h2 className="text-2xl font-bold mb-6 gradient-text">Events Management</h2>
         
         {events.length === 0 ? (
           <div className="text-center py-12">
-            <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No events found</h3>
-            <p className="text-gray-500 mb-4">Create your first event to get started</p>
+            <Calendar className="h-20 w-20 text-gray-400 mx-auto mb-6" />
+            <h3 className="text-2xl font-semibold text-gray-600 mb-3">No events found</h3>
+            <p className="text-gray-500 mb-6">Create your first event to get started</p>
             <button
               onClick={() => setShowCreateModal(true)}
               className="btn btn-primary"
@@ -306,7 +334,7 @@ export default function AdminDashboard() {
                           {event.availableSeats}
                         </span>
                       </td>
-                      <td className="py-3 px-4">${event.basePrice}</td>
+                      <td className="py-3 px-4">₹{event.basePrice}</td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           isUpcoming 
@@ -353,8 +381,8 @@ export default function AdminDashboard() {
 
       {/* Create Event Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto p-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-[3rem] max-w-2xl w-full max-h-screen overflow-y-auto p-8 fade-in">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Create New Event</h3>
               <button
@@ -434,7 +462,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="label">Base Price ($)</label>
+                  <label className="label">Base Price (₹)</label>
                   <input
                     type="number"
                     required
@@ -443,7 +471,7 @@ export default function AdminDashboard() {
                     value={formData.basePrice}
                     onChange={(e) => setFormData({...formData, basePrice: parseFloat(e.target.value)})}
                     className="input"
-                    placeholder="Enter base price"
+                    placeholder="Enter base price in rupees"
                   />
                 </div>
               </div>
@@ -487,6 +515,40 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[3rem] max-w-md w-full p-8 fade-in shadow-2xl border border-gray-200">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                <AlertCircle className="h-8 w-8 text-red-600" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-900">Delete Event</h3>
+              
+              <p className="text-gray-600">
+                Are you sure you want to delete this event? This action cannot be undone.
+              </p>
+              
+              <div className="flex justify-center space-x-4 pt-4">
+                <button
+                  onClick={cancelDeleteModal}
+                  className="btn btn-outline px-6"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteEvent}
+                  className="btn btn-danger px-6"
+                >
+                  Delete Event
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

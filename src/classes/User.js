@@ -27,9 +27,9 @@ class User {
     return this.role;
   }
 
-  // Method to check if user is VIP
+  // Method to check if user is VIP (removed - only Admin and Regular users)
   isVIP() {
-    return this.role === 'VIP';
+    return false; // No VIP users in simplified system
   }
 
   // Method to check if user is Admin
@@ -37,17 +37,15 @@ class User {
     return this.role === 'ADMIN';
   }
 
-  // Method to get user priority for waitlist
+  // Method to get user priority for waitlist (simplified)
   getWaitlistPriority() {
     switch (this.role) {
-      case 'VIP':
-        return 1; // Highest priority
       case 'ADMIN':
-        return 2; // Second priority
+        return 1; // Admin priority
       case 'REGULAR':
-        return 3; // Lowest priority
+        return 2; // Regular user priority
       default:
-        return 3;
+        return 2;
     }
   }
 
@@ -72,25 +70,6 @@ class RegularUser extends User {
   }
 }
 
-/**
- * VIPUser class demonstrating INHERITANCE
- * Inherits from User base class with special privileges
- */
-class VIPUser extends User {
-  constructor(id, name, email) {
-    super(id, name, email, 'VIP');
-  }
-
-  // Override getDiscount method
-  getDiscount() {
-    return 0.1; // 10% discount for VIP users
-  }
-
-  // VIP users get reserved quota
-  getReservedQuota() {
-    return 5; // 5 seats reserved per event for VIP users
-  }
-}
 
 /**
  * AdminUser class demonstrating INHERITANCE
@@ -112,9 +91,8 @@ class AdminUser extends User {
   }
 }
 
-module.exports = {
+export {
   User,
   RegularUser,
-  VIPUser,
   AdminUser
 };

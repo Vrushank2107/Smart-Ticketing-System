@@ -2,12 +2,14 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
-import { Calendar, MapPin, Users, Clock, Star, CreditCard, Smartphone, Wallet } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Star, CreditCard, Smartphone, Wallet, ArrowLeft } from 'lucide-react';
+import { useToast } from '../../../components/ToastContainer';
 
 export default function EventDetailsPage() {
   const { data: session } = useSession();
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bookingData, setBookingData] = useState({
@@ -125,15 +127,15 @@ export default function EventDetailsPage() {
       const result = await response.json();
 
       if (response.ok) {
-        alert(result.message);
+        toast.success(`Booking successful! ${result.message} Check your tickets for QR code.`);
         setShowBookingModal(false);
         router.push('/my-tickets');
       } else {
-        alert(result.error || 'Booking failed');
+        toast.error(result.error || 'Booking failed');
       }
     } catch (error) {
       console.error('Booking error:', error);
-      alert('Booking failed. Please try again.');
+      toast.error('Booking failed. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -175,7 +177,7 @@ export default function EventDetailsPage() {
 
   if (!event) {
     return (
-      <div className="text-center py-12">
+      <div className="glass-card rounded-[3rem] p-12 text-center">
         <h2 className="text-2xl font-bold text-gray-600 mb-4">Event not found</h2>
         <button onClick={() => router.push('/')} className="btn btn-primary">
           Back to Events
@@ -193,8 +195,19 @@ export default function EventDetailsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
+      {/* Back Navigation */}
+      <div className="flex items-center">
+        <button
+          onClick={() => router.push('/events')}
+          className="btn btn-outline flex items-center space-x-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Events</span>
+        </button>
+      </div>
+
       {/* Event Header */}
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div className="glass-card rounded-[3rem] overflow-hidden">
         {event.image && (
           <img
             src={event.image}
@@ -202,17 +215,17 @@ export default function EventDetailsPage() {
             className="w-full h-64 md:h-96 object-cover"
           />
         )}
-        <div className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+        <div className="p-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
             <div>
-              <span className="text-sm px-3 py-1 bg-primary-100 text-primary-800 rounded-full">
+              <span className="glass-badge text-sm px-4 py-1.5 bg-indigo-100 text-indigo-800 rounded-full">
                 {event.category}
               </span>
-              <h1 className="text-3xl font-bold mt-2">{event.title}</h1>
+              <h1 className="text-4xl font-bold mt-4 mb-2">{event.title}</h1>
             </div>
             <div className="mt-4 md:mt-0">
               <div className="flex items-center space-x-2">
-                <span className={`text-lg font-medium ${getAvailabilityColor(event.availableSeats, event.capacity)}`}>
+                <span className={`text-lg font-semibold ${getAvailabilityColor(event.availableSeats, event.capacity)}`}>
                   {getAvailabilityText(event.availableSeats, event.capacity)}
                 </span>
                 <span className="text-gray-500">•</span>
@@ -223,23 +236,29 @@ export default function EventDetailsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="flex items-center space-x-3">
-              <Calendar className="h-5 w-5 text-gray-400" />
+              <div className="bg-indigo-100 rounded-lg p-2">
+                <Calendar className="h-5 w-5 text-indigo-600" />
+              </div>
               <div>
                 <p className="text-sm text-gray-500">Date & Time</p>
                 <p className="font-medium">{formatDate(event.date)}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <MapPin className="h-5 w-5 text-gray-400" />
+              <div className="bg-indigo-100 rounded-lg p-2">
+                <MapPin className="h-5 w-5 text-indigo-600" />
+              </div>
               <div>
                 <p className="text-sm text-gray-500">Venue</p>
                 <p className="font-medium">{event.venue}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Users className="h-5 w-5 text-gray-400" />
+              <div className="bg-indigo-100 rounded-lg p-2">
+                <Users className="h-5 w-5 text-indigo-600" />
+              </div>
               <div>
                 <p className="text-sm text-gray-500">Capacity</p>
                 <p className="font-medium">{event.capacity} seats</p>
@@ -248,37 +267,41 @@ export default function EventDetailsPage() {
           </div>
 
           <div className="prose max-w-none">
-            <h3 className="text-xl font-semibold mb-3">About this Event</h3>
-            <p className="text-gray-600 leading-relaxed">{event.description}</p>
+            <h3 className="text-2xl font-semibold mb-4 gradient-text">About this Event</h3>
+            <p className="text-gray-600 leading-relaxed text-lg">{event.description}</p>
           </div>
         </div>
       </div>
 
       {/* Booking Section */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-bold mb-6">Book Your Tickets</h2>
+      <div className="glass-card rounded-[3rem] p-8">
+        <h2 className="text-3xl font-bold mb-6 gradient-text">Book Your Tickets</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Seat Selection */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Select Seat Type</h3>
+            <h3 className="text-xl font-semibold mb-4">Select Seat Type</h3>
             <div className="space-y-3">
-              {['NORMAL', 'PREMIUM', 'VIP'].map((seatType) => {
+              {['NORMAL', 'PREMIUM'].map((seatType) => {
                 const price = calculateDynamicPrice(event.basePrice, seatType, event.availableSeats, event.capacity);
                 return (
-                  <label key={seatType} className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                  <label key={seatType} className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                    bookingData.seatType === seatType 
+                      ? 'border-indigo-500 bg-indigo-50' 
+                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                  }`}>
                     <input
                       type="radio"
                       name="seatType"
                       value={seatType}
                       checked={bookingData.seatType === seatType}
                       onChange={(e) => setBookingData({...bookingData, seatType: e.target.value})}
-                      className="text-primary-600"
+                      className="text-indigo-600"
                     />
                     <div className="flex-1">
                       <div className="flex justify-between items-center">
                         <span className="font-medium">{seatType}</span>
-                        <span className="text-primary-600 font-semibold">${price}</span>
+                        <span className="text-primary-600 font-semibold">₹{price}</span>
                       </div>
                       {seatType === 'VIP' && (
                         <p className="text-sm text-gray-500">Best seats with premium experience</p>
@@ -301,18 +324,22 @@ export default function EventDetailsPage() {
                 value={bookingData.quantity}
                 onChange={(e) => setBookingData({...bookingData, quantity: parseInt(e.target.value)})}
                 className="input"
-                max={Math.min(event.availableSeats, 10)}
               >
-                {[...Array(Math.min(event.availableSeats, 10))].map((_, i) => (
+                {[...Array(10)].map((_, i) => (
                   <option key={i + 1} value={i + 1}>{i + 1}</option>
                 ))}
               </select>
+              {event.availableSeats === 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Select quantity for waitlist
+                </p>
+              )}
             </div>
           </div>
 
           {/* Payment Method */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
+            <h3 className="text-xl font-semibold mb-4">Payment Method</h3>
             <div className="space-y-3">
               {[
                 { value: 'CARD', label: 'Credit/Debit Card', icon: CreditCard },
@@ -321,14 +348,18 @@ export default function EventDetailsPage() {
               ].map((method) => {
                 const Icon = method.icon;
                 return (
-                  <label key={method.value} className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                  <label key={method.value} className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                    bookingData.paymentMethod === method.value 
+                      ? 'border-indigo-500 bg-indigo-50' 
+                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                  }`}>
                     <input
                       type="radio"
                       name="paymentMethod"
                       value={method.value}
                       checked={bookingData.paymentMethod === method.value}
                       onChange={(e) => setBookingData({...bookingData, paymentMethod: e.target.value})}
-                      className="text-primary-600"
+                      className="text-indigo-600"
                     />
                     <Icon className="h-5 w-5 text-gray-400" />
                     <span className="font-medium">{method.label}</span>
@@ -338,27 +369,21 @@ export default function EventDetailsPage() {
             </div>
 
             {/* Price Summary */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-semibold mb-3">Price Summary</h4>
-              <div className="space-y-2">
+            <div className="mt-6 p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
+              <h4 className="font-semibold mb-4 text-lg">Price Summary</h4>
+              <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span>Base Price ({bookingData.seatType})</span>
-                  <span>${currentPrice.toFixed(2)}</span>
+                  <span className="text-gray-600">Base Price ({bookingData.seatType})</span>
+                  <span className="font-medium">₹{currentPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Quantity</span>
-                  <span>x{bookingData.quantity}</span>
+                  <span className="text-gray-600">Quantity</span>
+                  <span className="font-medium">x{bookingData.quantity}</span>
                 </div>
-                {session?.user?.role === 'VIP' && (
-                  <div className="flex justify-between text-green-600">
-                    <span>VIP Discount (10%)</span>
-                    <span>-${(currentPrice * bookingData.quantity * 0.1).toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                <div className="flex justify-between font-bold text-xl pt-4 border-t border-indigo-200">
                   <span>Total</span>
-                  <span className="text-primary-600">
-                    ${(currentPrice * bookingData.quantity).toFixed(2)}
+                  <span className="gradient-text">
+                    ₹{(currentPrice * bookingData.quantity).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -366,14 +391,21 @@ export default function EventDetailsPage() {
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={handleBooking}
-            disabled={processing || event.availableSeats === 0}
-            className="btn btn-primary text-lg px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {processing ? 'Processing...' : event.availableSeats === 0 ? 'Sold Out' : 'Book Now'}
-          </button>
+        <div className="mt-8 flex justify-end">
+          <div className="flex items-end space-x-4">
+            <button
+              onClick={handleBooking}
+              disabled={processing}
+              className="btn btn-primary text-lg px-10 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {processing ? 'Processing...' : event.availableSeats === 0 ? 'Join Waitlist' : 'Book Now'}
+            </button>
+            {event.availableSeats === 0 && (
+              <p className="text-sm text-gray-600 max-w-xs">
+                Join the waitlist to be notified when tickets become available
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

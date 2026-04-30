@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { authOptions } from '../../../../../lib/auth';
+import { authOptions } from '../../../../lib/auth';
 import { PrismaClient } from '@prisma/client';
+import TicketingService from '../../../../services/TicketingService';
 
 const prisma = new PrismaClient();
+const ticketingService = new TicketingService();
 
 export async function GET(request, { params }) {
   try {
@@ -71,6 +73,18 @@ export async function PUT(request, { params }) {
       );
     }
 
+    // Get current event to check if capacity increased
+    const currentEvent = await prisma.event.findUnique({ where: { id } });
+    if (!currentEvent) {
+      return NextResponse.json(
+        { error: 'Event not found' },
+        { status: 404 }
+      );
+    }
+
+    const capacityIncreased = capacity > currentEvent.capacity;
+
+    // Update event
     const event = await prisma.event.update({
       where: { id },
       data: {
@@ -81,9 +95,18 @@ export async function PUT(request, { params }) {
         capacity,
         basePrice,
         category,
-        image
+        image,
+        // If capacity increased, update available seats accordingly
+        ...(capacityIncreased && { 
+          availableSeats: currentEvent.availableSeats + (capacity - currentEvent.capacity)
+        })
       }
     });
+
+    // If capacity increased, check and promote waitlisted users
+    if (capacityIncreased) {
+      await ticketingService.checkAndPromoteWaitlist(id);
+    }
 
     return NextResponse.json(event, { status: 200 });
   } catch (error) {

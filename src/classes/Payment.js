@@ -48,22 +48,16 @@ class CardPayment extends Payment {
     this.paymentMethod = 'CARD';
   }
 
-  // Override processPayment method
+  // Override processPayment method (FAKE PAYMENT - Always succeeds)
   processPayment() {
     // Simulate card payment processing
-    console.log(`Processing card payment of $${this.amount} for card ending in ${this.cardNumber.slice(-4)}`);
+    console.log(`Processing card payment of ₹${this.amount} for card ending in ${this.cardNumber ? this.cardNumber.slice(-4) : '****'}`);
     
-    // Simulate payment validation
-    if (this.validateCardDetails()) {
-      this.status = 'SUCCESS';
-      this.transactionId = `CARD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      console.log('Card payment successful');
-      return true;
-    } else {
-      this.status = 'FAILED';
-      console.log('Card payment failed');
-      return false;
-    }
+    // FAKE PAYMENT - Always succeeds for demo purposes
+    this.status = 'SUCCESS';
+    this.transactionId = `CARD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log('Card payment successful (FAKE)');
+    return true;
   }
 
   // Method to validate card details
@@ -85,22 +79,16 @@ class UpiPayment extends Payment {
     this.paymentMethod = 'UPI';
   }
 
-  // Override processPayment method
+  // Override processPayment method (FAKE PAYMENT - Always succeeds)
   processPayment() {
     // Simulate UPI payment processing
-    console.log(`Processing UPI payment of $${this.amount} for UPI ID: ${this.upiId}`);
+    console.log(`Processing UPI payment of ₹${this.amount} for UPI ID: ${this.upiId || 'user@upi'}`);
     
-    // Simulate payment validation
-    if (this.validateUpiId()) {
-      this.status = 'SUCCESS';
-      this.transactionId = `UPI-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      console.log('UPI payment successful');
-      return true;
-    } else {
-      this.status = 'FAILED';
-      console.log('UPI payment failed');
-      return false;
-    }
+    // FAKE PAYMENT - Always succeeds for demo purposes
+    this.status = 'SUCCESS';
+    this.transactionId = `UPI-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log('UPI payment successful (FAKE)');
+    return true;
   }
 
   // Method to validate UPI ID
@@ -123,22 +111,16 @@ class WalletPayment extends Payment {
     this.paymentMethod = 'WALLET';
   }
 
-  // Override processPayment method
+  // Override processPayment method (FAKE PAYMENT - Always succeeds)
   processPayment() {
     // Simulate wallet payment processing
-    console.log(`Processing ${this.walletType} wallet payment of $${this.amount} for wallet: ${this.walletNumber}`);
+    console.log(`Processing ${this.walletType || 'PayTM'} wallet payment of ₹${this.amount} for wallet: ${this.walletNumber || '9876543210'}`);
     
-    // Simulate payment validation
-    if (this.validateWalletDetails()) {
-      this.status = 'SUCCESS';
-      this.transactionId = `WALLET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      console.log('Wallet payment successful');
-      return true;
-    } else {
-      this.status = 'FAILED';
-      console.log('Wallet payment failed');
-      return false;
-    }
+    // FAKE PAYMENT - Always succeeds for demo purposes
+    this.status = 'SUCCESS';
+    this.transactionId = `WALLET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log('Wallet payment successful (FAKE)');
+    return true;
   }
 
   // Method to validate wallet details
@@ -148,7 +130,7 @@ class WalletPayment extends Payment {
   }
 }
 
-module.exports = {
+export {
   Payment,
   CardPayment,
   UpiPayment,

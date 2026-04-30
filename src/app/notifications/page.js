@@ -49,10 +49,23 @@ export default function NotificationsPage() {
   };
 
   const markAllAsRead = async () => {
-    const unreadNotifications = notifications.filter(n => n.status === 'UNREAD');
-    
-    for (const notification of unreadNotifications) {
-      await markAsRead(notification.id);
+    try {
+      const response = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        // Refetch notifications to get the updated state
+        await fetchNotifications();
+      } else {
+        const data = await response.json();
+        console.error('API returned error:', data.error);
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
     }
   };
 
@@ -98,7 +111,7 @@ export default function NotificationsPage() {
 
   if (!session) {
     return (
-      <div className="text-center py-12">
+      <div className="glass-card rounded-[3rem] p-12 text-center">
         <h2 className="text-2xl font-bold text-gray-600 mb-4">Please sign in to view notifications</h2>
         <a href="/auth/signin" className="btn btn-primary">
           Sign In
@@ -116,44 +129,48 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-gray-600 mt-2">
-            {unreadCount > 0 
-              ? `You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
-              : 'All caught up! No new notifications.'
-            }
-          </p>
+      <div className="glass-card rounded-[3rem] p-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">
+              <span className="gradient-text">Notifications</span>
+            </h1>
+            <p className="text-gray-600 text-lg">
+              {unreadCount > 0 
+                ? `You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
+                : 'All caught up! No new notifications.'
+              }
+            </p>
+          </div>
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className="btn btn-primary flex items-center space-x-2"
+            >
+              <Check className="h-4 w-4" />
+              <span>Mark All as Read</span>
+            </button>
+          )}
         </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllAsRead}
-            className="btn btn-secondary flex items-center space-x-2"
-          >
-            <Check className="h-4 w-4" />
-            <span>Mark All as Read</span>
-          </button>
-        )}
       </div>
 
       {/* Notifications List */}
       {notifications.length === 0 ? (
-        <div className="text-center py-12">
-          <Bell className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">No notifications yet</h3>
+        <div className="glass-card rounded-[3rem] p-12 text-center">
+          <Bell className="h-20 w-20 text-gray-400 mx-auto mb-6" />
+          <h3 className="text-2xl font-semibold text-gray-600 mb-3">No notifications yet</h3>
           <p className="text-gray-500">
             We'll notify you about booking confirmations, waitlist updates, and event reminders.
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {notifications.map((notification) => (
             <div
               key={notification.id}
-              className={`p-4 rounded-lg border transition-all hover:shadow-md ${getNotificationColor(notification.status)}`}
+              className={`glass-feature p-6 rounded-2xl transition-all hover:shadow-xl ${getNotificationColor(notification.status)}`}
             >
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 mt-1">

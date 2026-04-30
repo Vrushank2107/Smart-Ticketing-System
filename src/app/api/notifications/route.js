@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/auth';
-import TicketingService from '../../../services/TicketingService';
+import NotificationService from '../../../classes/NotificationService';
 
-const prisma = new PrismaClient();
-
-const ticketingService = new TicketingService();
+const notificationService = new NotificationService();
 
 export async function GET(request) {
   try {
@@ -20,7 +18,7 @@ export async function GET(request) {
     }
 
     // Get user notifications
-    const notifications = await ticketingService.getUserNotifications(session.user.id);
+    const notifications = await notificationService.getUserNotifications(session.user.id);
 
     return NextResponse.json(notifications, { status: 200 });
   } catch (error) {
@@ -53,13 +51,17 @@ export async function POST(request) {
     }
 
     // Mark notification as read
-    await prisma.notification.update({
-      where: { id: notificationId },
-      data: { status: 'READ' }
-    });
+    const updatedNotification = await notificationService.markAsRead(notificationId);
+
+    if (!updatedNotification) {
+      return NextResponse.json(
+        { error: 'Notification not found' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json(
-      { message: 'Notification marked as read' },
+      { message: 'Notification marked as read', notification: updatedNotification },
       { status: 200 }
     );
   } catch (error) {

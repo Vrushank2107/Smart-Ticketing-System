@@ -3,9 +3,9 @@
  * Demonstrates the main automation logic and OOP concepts
  */
 import { PrismaClient } from '@prisma/client';
-import { Event } from '../classes/Event';
-import { Ticket } from '../classes/Ticket';
-import { User, RegularUser, VIPUser, AdminUser } from '../classes/User';
+const Event = require('../classes/Event');
+import Ticket from '../classes/Ticket';
+import { User, RegularUser, AdminUser } from '../classes/User';
 import { CardPayment, UpiPayment, WalletPayment } from '../classes/Payment';
 import NotificationService from '../classes/NotificationService';
 import QRCode from 'qrcode';
@@ -48,10 +48,9 @@ class TicketingService {
       // Set current available seats
       event.availableSeats = eventRecord.availableSeats;
 
-      // Calculate dynamic price
+      // Calculate dynamic price (no VIP discounts in simplified system)
       const basePrice = event.calculateDynamicPrice(seatType);
-      const discount = user.getDiscount();
-      const finalPrice = basePrice * (1 - discount) * quantity;
+      const finalPrice = basePrice * quantity;
 
       // Process payment using polymorphism
       const payment = this.createPaymentInstance(finalPrice, userId, paymentDetails);
@@ -73,7 +72,7 @@ class TicketingService {
         });
 
         // Send booking confirmation
-        this.notificationService.sendBookingConfirmation(
+        await this.notificationService.sendBookingConfirmation(
           userId,
           ticket.id,
           eventRecord.title,
@@ -136,15 +135,15 @@ class TicketingService {
       });
 
       // Send cancellation confirmation
-      this.notificationService.sendCancellationConfirmation(
+      await this.notificationService.sendCancellationConfirmation(
         userId,
         ticketId,
         ticket.event.title,
         ticket.event.date
       );
 
-      // PROMOTE WAITLISTED USER - This is the core automation logic
-      await this.promoteWaitlistedUser(ticket.eventId, ticket.quantity);
+      // PROMOTE WAITLISTED USER - Check and promote waitlisted users
+      await this.checkAndPromoteWaitlist(ticket.eventId);
 
       return {
         success: true,
@@ -157,18 +156,93 @@ class TicketingService {
   }
 
   /**
-   * Promote first waitlisted user when vacancy occurs
-   * This demonstrates the waitlist automation with VIP priority
+   * Check and promote waitlisted users when availability changes
+   * This method should be called whenever ticket availability increases
    */
-  async promoteWaitlistedUser(eventId, quantity) {
+  async checkAndPromoteWaitlist(eventId) {
     try {
-      // Get waitlist ordered by user priority (VIP first)
+      // Get current event details
+      const event = await prisma.event.findUnique({ where: { id: eventId } });
+      if (!event) return;
+
+      // Get waitlist ordered by position (first-come-first-serve)
       const waitlist = await prisma.waitlist.findMany({
         where: { eventId },
         include: { user: true },
-        orderBy: [
-          { user: { role: 'desc' } } // VIP users first
-        ]
+        orderBy: { position: 'asc' }
+      });
+
+      if (waitlist.length === 0) return;
+
+      // Promote as many waitlisted users as possible based on available seats
+      let availableSeats = event.availableSeats;
+      
+      for (const waitlistedUser of waitlist) {
+        if (availableSeats <= 0) break;
+
+        // Get their waitlisted ticket
+        const waitlistedTicket = await prisma.ticket.findFirst({
+          where: {
+            userId: waitlistedUser.userId,
+            eventId: eventId,
+            status: 'WAITLISTED'
+          }
+        });
+
+        if (waitlistedTicket && waitlistedTicket.quantity <= availableSeats) {
+          // Promote to booked
+          await prisma.ticket.update({
+            where: { id: waitlistedTicket.id },
+            data: { status: 'BOOKED' }
+          });
+
+          // Remove from waitlist
+          await prisma.waitlist.delete({
+            where: { id: waitlistedUser.id }
+          });
+
+          // Update available seats
+          availableSeats -= waitlistedTicket.quantity;
+          await prisma.event.update({
+            where: { id: eventId },
+            data: { availableSeats: availableSeats }
+          });
+
+          // Generate QR code
+          const qrCode = await QRCode.toDataURL(`TICKET-${waitlistedTicket.id}`);
+          await prisma.ticket.update({
+            where: { id: waitlistedTicket.id },
+            data: { qrCode }
+          });
+
+          // Send promotion notification
+          await this.notificationService.sendWaitlistPromotion(
+            waitlistedUser.userId,
+            waitlistedTicket.id,
+            event.title,
+            event.date
+          );
+
+          console.log(`Promoted user ${waitlistedUser.userId} from waitlist for event ${eventId}`);
+        }
+      }
+    } catch (error) {
+      console.error('Waitlist check error:', error);
+    }
+  }
+
+  /**
+   * Promote first waitlisted user when vacancy occurs
+   * This demonstrates the waitlist automation (first-come-first-serve)
+   * @deprecated - Use checkAndPromoteWaitlist instead
+   */
+  async promoteWaitlistedUser(eventId, quantity) {
+    try {
+      // Get waitlist ordered by position (first-come-first-serve)
+      const waitlist = await prisma.waitlist.findMany({
+        where: { eventId },
+        include: { user: true },
+        orderBy: { position: 'asc' } // First in queue gets promoted
       });
 
       if (waitlist.length === 0) {
@@ -213,7 +287,7 @@ class TicketingService {
         });
 
         // Send promotion notification
-        this.notificationService.sendWaitlistPromotion(
+        await this.notificationService.sendWaitlistPromotion(
           firstWaitlisted.userId,
           waitlistedTicket.id,
           waitlistedTicket.event.title,
@@ -232,11 +306,10 @@ class TicketingService {
    */
   createUserInstance(userRecord) {
     switch (userRecord.role) {
-      case 'VIP':
-        return new VIPUser(userRecord.id, userRecord.name, userRecord.email);
       case 'ADMIN':
         return new AdminUser(userRecord.id, userRecord.name, userRecord.email);
       case 'REGULAR':
+        return new RegularUser(userRecord.id, userRecord.name, userRecord.email);
       default:
         return new RegularUser(userRecord.id, userRecord.name, userRecord.email);
     }
