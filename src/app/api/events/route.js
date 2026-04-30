@@ -83,7 +83,7 @@ export async function POST(request) {
         venue,
         date: new Date(date),
         capacity,
-        availableSeats: capacity,
+        availableSeats: availableSeats || capacity,
         basePrice,
         category,
         image
