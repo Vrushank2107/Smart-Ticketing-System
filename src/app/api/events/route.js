@@ -66,7 +66,7 @@ export async function POST(request) {
       );
     }
 
-    const { title, description, venue, date, capacity, basePrice, category, image } = await request.json();
+    const { title, description, venue, date, capacity, availableSeats, basePrice, category, image } = await request.json();
 
     // Validate input
     if (!title || !description || !venue || !date || !capacity || !basePrice || !category) {

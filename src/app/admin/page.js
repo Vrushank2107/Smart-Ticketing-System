@@ -48,6 +48,7 @@ export default function AdminDashboard() {
     venue: '',
     date: '',
     capacity: '',
+    availableSeats: '',
     basePrice: '',
     category: '',
     image: ''
@@ -135,6 +136,7 @@ export default function AdminDashboard() {
       venue: event.venue,
       date: new Date(event.date).toISOString().slice(0, 16),
       capacity: event.capacity,
+      availableSeats: event.availableSeats,
       basePrice: event.basePrice,
       category: event.category,
       image: event.image || ''
@@ -163,6 +165,7 @@ export default function AdminDashboard() {
           venue: '',
           date: '',
           capacity: '',
+          availableSeats: '',
           basePrice: '',
           category: '',
           image: ''
@@ -279,7 +282,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="glass-stat">
           <div className="flex items-center justify-between">
             <div>
@@ -306,19 +309,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="glass-stat">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Revenue</p>
-              <p className="text-3xl font-bold text-indigo-600">₹{stats.totalRevenue.toFixed(2)}</p>
-              <p className="text-xs text-gray-500 mt-1">All time revenue</p>
-            </div>
-            <div className="h-14 w-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center">
-              <DollarSign className="h-7 w-7 text-white" />
-            </div>
-          </div>
-        </div>
-
+        
         <div className="glass-stat">
           <div className="flex items-center justify-between">
             <div>
@@ -516,6 +507,20 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
+                  <label className="label">Available Seats</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    max={formData.capacity || ''}
+                    value={formData.availableSeats}
+                    onChange={(e) => setFormData({...formData, availableSeats: parseInt(e.target.value)})}
+                    className="input"
+                    placeholder="Enter available seats"
+                  />
+                </div>
+
+                <div>
                   <label className="label">Base Price (₹)</label>
                   <input
                     type="number"
@@ -669,6 +674,21 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
+                  <label className="label">Available Seats</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    max={formData.capacity || ''}
+                    value={formData.availableSeats}
+                    onChange={(e) => setFormData({...formData, availableSeats: parseInt(e.target.value)})}
+                    className="input"
+                    placeholder="Enter available seats"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Current available seats for booking</p>
+                </div>
+
+                <div>
                   <label className="label">Base Price (₹)</label>
                   <input
                     type="number"
@@ -718,6 +738,7 @@ export default function AdminDashboard() {
                       venue: '',
                       date: '',
                       capacity: '',
+                      availableSeats: '',
                       basePrice: '',
                       category: '',
                       image: ''

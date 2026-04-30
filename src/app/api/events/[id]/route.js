@@ -73,12 +73,20 @@ export async function PUT(request, { params }) {
     }
 
     const { id } = params;
-    const { title, description, venue, date, capacity, basePrice, category, image } = await request.json();
+    const { title, description, venue, date, capacity, availableSeats, basePrice, category, image } = await request.json();
 
     // Validate input
     if (!title || !description || !venue || !date || !capacity || !basePrice || !category) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate available seats
+    if (availableSeats !== undefined && (availableSeats < 0 || availableSeats > capacity)) {
+      return NextResponse.json(
+        { error: 'Available seats must be between 0 and capacity' },
         { status: 400 }
       );
     }
@@ -106,10 +114,13 @@ export async function PUT(request, { params }) {
         basePrice,
         category,
         image,
-        // If capacity increased, update available seats accordingly
-        ...(capacityIncreased && { 
-          availableSeats: currentEvent.availableSeats + (capacity - currentEvent.capacity)
-        })
+        // Handle available seats
+        ...(availableSeats !== undefined 
+          ? { availableSeats }
+          : capacityIncreased 
+            ? { availableSeats: currentEvent.availableSeats + (capacity - currentEvent.capacity) }
+            : {}
+        )
       }
     });
 
