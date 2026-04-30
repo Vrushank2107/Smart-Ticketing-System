@@ -29,12 +29,6 @@ export default function AdminDashboard() {
   const { data: session } = useSession();
   const router = useRouter();
   const toast = useToast();
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalBookings: 0,
-    totalRevenue: 0,
-    activeEvents: 0
-  });
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -70,21 +64,6 @@ export default function AdminDashboard() {
       const eventsResponse = await fetch('/api/events');
       const eventsData = await eventsResponse.json();
       setEvents(eventsData);
-
-      // Fetch analytics data
-      const analyticsResponse = await fetch('/api/admin/analytics');
-      const analyticsData = await analyticsResponse.json();
-
-      // Fetch user data
-      const usersResponse = await fetch('/api/admin/users');
-      const usersData = await usersResponse.json();
-
-      setStats({
-        totalUsers: usersData.count || 0,
-        totalBookings: analyticsData.bookings.total || 0,
-        totalRevenue: analyticsData.revenue.total || 0,
-        activeEvents: analyticsData.events.upcoming || 0
-      });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -281,49 +260,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="glass-stat">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Users</p>
-              <p className="text-3xl font-bold text-indigo-600">{stats.totalUsers}</p>
-              <p className="text-xs text-gray-500 mt-1">Registered users</p>
-            </div>
-            <div className="h-14 w-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
-              <Users className="h-7 w-7 text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-stat">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Bookings</p>
-              <p className="text-3xl font-bold text-indigo-600">{stats.totalBookings}</p>
-              <p className="text-xs text-gray-500 mt-1">Confirmed tickets</p>
-            </div>
-            <div className="h-14 w-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
-              <Ticket className="h-7 w-7 text-white" />
-            </div>
-          </div>
-        </div>
-
-        
-        <div className="glass-stat">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Active Events</p>
-              <p className="text-3xl font-bold text-indigo-600">{stats.activeEvents}</p>
-              <p className="text-xs text-gray-500 mt-1">Upcoming events</p>
-            </div>
-            <div className="h-14 w-14 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
-              <Calendar className="h-7 w-7 text-white" />
-            </div>
-          </div>
-        </div>
-      </div>
-
+      
       {/* Events Table */}
       <div className="glass-card rounded-[3rem] p-8">
         <h2 className="text-2xl font-bold mb-6 gradient-text">Events Management</h2>

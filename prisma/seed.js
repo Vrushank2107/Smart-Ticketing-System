@@ -239,27 +239,96 @@ async function main() {
 
   // Create some sample tickets
   const musicEvent = await prisma.event.findFirst({
-    where: { title: 'Summer Music Festival' }
+    where: { title: 'Summer Music Festival 2025' }
   });
 
   if (musicEvent) {
-    // Create a booked ticket for regular user
-    await prisma.ticket.create({
-      data: {
-        userId: regularUser.id,
-        eventId: musicEvent.id,
-        seatType: 'NORMAL',
-        quantity: 2,
-        status: 'BOOKED',
-        price: 14998.00,
-        qrCode: 'TICKET-SAMPLE-QR-CODE-1'
-      }
+    // Create multiple booked tickets for regular user
+    await prisma.ticket.createMany({
+      data: [
+        {
+          userId: regularUser.id,
+          eventId: musicEvent.id,
+          seatType: 'NORMAL',
+          quantity: 2,
+          status: 'BOOKED',
+          price: 14998.00,
+          qrCode: 'TICKET-SAMPLE-QR-CODE-1'
+        },
+        {
+          userId: regularUser.id,
+          eventId: musicEvent.id,
+          seatType: 'VIP',
+          quantity: 1,
+          status: 'BOOKED',
+          price: 14998.00,
+          qrCode: 'TICKET-SAMPLE-QR-CODE-2'
+        }
+      ]
     });
 
     // Update available seats
     await prisma.event.update({
       where: { id: musicEvent.id },
-      data: { availableSeats: musicEvent.availableSeats - 2 }
+      data: { availableSeats: musicEvent.availableSeats - 3 }
+    });
+  }
+
+  // Create more tickets for other events
+  const techEvent = await prisma.event.findFirst({
+    where: { title: 'Tech Innovation Summit 2025' }
+  });
+
+  if (techEvent) {
+    await prisma.ticket.createMany({
+      data: [
+        {
+          userId: adminUser.id,
+          eventId: techEvent.id,
+          seatType: 'PREMIUM',
+          quantity: 1,
+          status: 'BOOKED',
+          price: 24999.00,
+          qrCode: 'TICKET-SAMPLE-QR-CODE-3'
+        },
+        {
+          userId: regularUser.id,
+          eventId: techEvent.id,
+          seatType: 'NORMAL',
+          quantity: 2,
+          status: 'BOOKED',
+          price: 49998.00,
+          qrCode: 'TICKET-SAMPLE-QR-CODE-4'
+        }
+      ]
+    });
+
+    await prisma.event.update({
+      where: { id: techEvent.id },
+      data: { availableSeats: techEvent.availableSeats - 3 }
+    });
+  }
+
+  const comedyEvent = await prisma.event.findFirst({
+    where: { title: 'Comedy Night Special' }
+  });
+
+  if (comedyEvent) {
+    await prisma.ticket.create({
+      data: {
+        userId: regularUser.id,
+        eventId: comedyEvent.id,
+        seatType: 'NORMAL',
+        quantity: 4,
+        status: 'BOOKED',
+        price: 14996.00,
+        qrCode: 'TICKET-SAMPLE-QR-CODE-5'
+      }
+    });
+
+    await prisma.event.update({
+      where: { id: comedyEvent.id },
+      data: { availableSeats: comedyEvent.availableSeats - 4 }
     });
   }
 
