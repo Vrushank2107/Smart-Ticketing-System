@@ -20,7 +20,8 @@ import {
   CreditCard, 
   Smartphone, 
   Wallet, 
-  ArrowLeft
+  ArrowLeft,
+  X
 } from 'lucide-react';
 import { useToast } from '../../components/ToastContainer';
 
@@ -37,8 +38,10 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
+  const [eventToEdit, setEventToEdit] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -67,27 +70,19 @@ export default function AdminDashboard() {
       const eventsData = await eventsResponse.json();
       setEvents(eventsData);
 
-      // Calculate stats
-      const totalBookings = eventsData.reduce((sum, event) => 
-        sum + (event.capacity - event.availableSeats), 0
-      );
-      
-      const totalRevenue = eventsData.reduce((sum, event) => 
-        sum + ((event.capacity - event.availableSeats) * event.basePrice), 0
-      );
+      // Fetch analytics data
+      const analyticsResponse = await fetch('/api/admin/analytics');
+      const analyticsData = await analyticsResponse.json();
 
-      const activeEvents = eventsData.filter(event => 
-        new Date(event.date) > new Date()
-      ).length;
-
-      // Mock user count (in real app, fetch from users API)
-      const totalUsers = 150; // Placeholder
+      // Fetch user data
+      const usersResponse = await fetch('/api/admin/users');
+      const usersData = await usersResponse.json();
 
       setStats({
-        totalUsers,
-        totalBookings,
-        totalRevenue,
-        activeEvents
+        totalUsers: usersData.count || 0,
+        totalBookings: analyticsData.bookings.total || 0,
+        totalRevenue: analyticsData.revenue.total || 0,
+        activeEvents: analyticsData.events.upcoming || 0
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -129,6 +124,58 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error creating event:', error);
       toast.error('Failed to create event');
+    }
+  };
+
+  const handleEditEvent = async (event) => {
+    setEventToEdit(event);
+    setFormData({
+      title: event.title,
+      description: event.description,
+      venue: event.venue,
+      date: new Date(event.date).toISOString().slice(0, 16),
+      capacity: event.capacity,
+      basePrice: event.basePrice,
+      category: event.category,
+      image: event.image || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateEvent = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const response = await fetch(`/api/admin/events/${eventToEdit.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setShowEditModal(false);
+        setEventToEdit(null);
+        setFormData({
+          title: '',
+          description: '',
+          venue: '',
+          date: '',
+          capacity: '',
+          basePrice: '',
+          category: '',
+          image: ''
+        });
+        fetchDashboardData();
+        toast.success('Event updated successfully');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to update event');
+      }
+    } catch (error) {
+      console.error('Error updating event:', error);
+      toast.error('Failed to update event');
     }
   };
 
@@ -238,6 +285,7 @@ export default function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Total Users</p>
               <p className="text-3xl font-bold text-indigo-600">{stats.totalUsers}</p>
+              <p className="text-xs text-gray-500 mt-1">Registered users</p>
             </div>
             <div className="h-14 w-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
               <Users className="h-7 w-7 text-white" />
@@ -250,6 +298,7 @@ export default function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Total Bookings</p>
               <p className="text-3xl font-bold text-indigo-600">{stats.totalBookings}</p>
+              <p className="text-xs text-gray-500 mt-1">Confirmed tickets</p>
             </div>
             <div className="h-14 w-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
               <Ticket className="h-7 w-7 text-white" />
@@ -262,6 +311,7 @@ export default function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Total Revenue</p>
               <p className="text-3xl font-bold text-indigo-600">₹{stats.totalRevenue.toFixed(2)}</p>
+              <p className="text-xs text-gray-500 mt-1">All time revenue</p>
             </div>
             <div className="h-14 w-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center">
               <DollarSign className="h-7 w-7 text-white" />
@@ -274,6 +324,7 @@ export default function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Active Events</p>
               <p className="text-3xl font-bold text-indigo-600">{stats.activeEvents}</p>
+              <p className="text-xs text-gray-500 mt-1">Upcoming events</p>
             </div>
             <div className="h-14 w-14 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
               <Calendar className="h-7 w-7 text-white" />
@@ -359,7 +410,10 @@ export default function AdminDashboard() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-800">
+                          <button 
+                            onClick={() => handleEditEvent(event)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
@@ -512,6 +566,172 @@ export default function AdminDashboard() {
                   className="btn btn-primary"
                 >
                   Create Event
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-[3rem] max-w-2xl w-full max-h-screen overflow-y-auto p-8 fade-in">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold">Edit Event</h3>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEventToEdit(null);
+                  setFormData({
+                    title: '',
+                    description: '',
+                    venue: '',
+                    date: '',
+                    capacity: '',
+                    basePrice: '',
+                    category: '',
+                    image: ''
+                  });
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateEvent} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Event Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    className="input"
+                    placeholder="Enter event title"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Category</label>
+                  <select
+                    required
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="input"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Music">Music</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Theater">Theater</option>
+                    <option value="Comedy">Comedy</option>
+                    <option value="Conference">Conference</option>
+                    <option value="Workshop">Workshop</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Venue</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.venue}
+                    onChange={(e) => setFormData({...formData, venue: e.target.value})}
+                    className="input"
+                    placeholder="Enter venue"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Capacity</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={formData.capacity}
+                    onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value)})}
+                    className="input"
+                    placeholder="Enter capacity"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Base Price (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={formData.basePrice}
+                    onChange={(e) => setFormData({...formData, basePrice: parseFloat(e.target.value)})}
+                    className="input"
+                    placeholder="Enter base price in rupees"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Description</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  className="input"
+                  placeholder="Enter event description"
+                />
+              </div>
+
+              <div>
+                <label className="label">Image URL (optional)</label>
+                <input
+                  type="url"
+                  value={formData.image}
+                  onChange={(e) => setFormData({...formData, image: e.target.value})}
+                  className="input"
+                  placeholder="Enter image URL"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEventToEdit(null);
+                    setFormData({
+                      title: '',
+                      description: '',
+                      venue: '',
+                      date: '',
+                      capacity: '',
+                      basePrice: '',
+                      category: '',
+                      image: ''
+                    });
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                >
+                  Update Event
                 </button>
               </div>
             </form>
